@@ -4,7 +4,7 @@ A small three-tier application deployment demonstrating infrastructure as code, 
 
 ## Planned architecture
 
-- **API:** a small containerized API with a health endpoint
+- **API:** A small containerized API with a health endpoint
 - **Compute:** Azure Container Apps
 - **Database:** Azure Database for PostgreSQL Flexible Server
 - **Container registry:** Azure Container Registry
