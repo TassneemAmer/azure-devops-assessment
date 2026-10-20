@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+docs
+infra
+tests
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
