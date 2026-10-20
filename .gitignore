@@ -3,6 +3,8 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
+*.plan
 crash.log
 crash.*.log
 
@@ -20,6 +22,7 @@ crash.*.log
 !.env.example
 
 # Local build and editor files
+node_modules/
 .DS_Store
 Thumbs.db
 .vscode/

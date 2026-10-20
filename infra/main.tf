@@ -51,6 +51,9 @@ resource "azurerm_subnet" "postgresql" {
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = ["10.42.1.0/28"]
+  service_endpoint {
+    service = "Microsoft.Storage"
+  }
 
   delegation {
     name = "postgresql-flexible-server"
@@ -71,12 +74,11 @@ resource "azurerm_private_dns_zone" "postgresql" {
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "postgresql" {
-  name                  = "dnslink-${local.name_base}"
-  private_dns_zone_name = azurerm_private_dns_zone.postgresql.name
-  resource_group_name   = azurerm_resource_group.main.name
-  virtual_network_id    = azurerm_virtual_network.main.id
-  registration_enabled  = false
-  tags                  = local.tags
+  name                 = "dnslink-${local.name_base}"
+  private_dns_zone_id  = azurerm_private_dns_zone.postgresql.id
+  virtual_network_id   = azurerm_virtual_network.main.id
+  registration_enabled = false
+  tags                 = local.tags
 }
 
 resource "azurerm_log_analytics_workspace" "main" {
@@ -108,6 +110,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   resource_group_name           = azurerm_resource_group.main.name
   location                      = azurerm_resource_group.main.location
   version                       = "16"
+  zone                          = "3"
   delegated_subnet_id           = azurerm_subnet.postgresql.id
   private_dns_zone_id           = azurerm_private_dns_zone.postgresql.id
   public_network_access_enabled = false
@@ -143,10 +146,16 @@ resource "azurerm_container_app" "api" {
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
   tags                         = local.tags
 
   identity {
     type = "SystemAssigned"
+  }
+
+  secret {
+    name  = "postgres-admin-password"
+    value = var.db_admin_password
   }
 
   registry {
@@ -156,7 +165,7 @@ resource "azurerm_container_app" "api" {
 
   ingress {
     external_enabled           = true
-    target_port                = 80
+    target_port                = 3000
     transport                  = "auto"
     allow_insecure_connections = false
 
@@ -178,15 +187,39 @@ resource "azurerm_container_app" "api" {
 
       env {
         name  = "PORT"
-        value = "80"
+        value = "3000"
+      }
+
+      env {
+        name  = "PGHOST"
+        value = azurerm_postgresql_flexible_server.main.fqdn
+      }
+
+      env {
+        name  = "PGPORT"
+        value = "5432"
+      }
+
+      env {
+        name  = "PGDATABASE"
+        value = azurerm_postgresql_flexible_server_database.app.name
+      }
+
+      env {
+        name  = "PGUSER"
+        value = var.db_admin_login
+      }
+
+      env {
+        name        = "PGPASSWORD"
+        secret_name = "postgres-admin-password"
       }
     }
   }
 
-  # After the first deployment, GitHub Actions owns the app image and port.
+  # GitHub Actions owns app image updates; Terraform manages the port and settings.
   lifecycle {
     ignore_changes = [
-      ingress[0].target_port,
       template[0].container[0].image,
     ]
   }
