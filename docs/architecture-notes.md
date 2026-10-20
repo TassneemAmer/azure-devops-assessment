@@ -4,6 +4,8 @@
 
 The assessment will use Azure Container Apps to host a small HTTP API in a Docker container. The API will use Azure Database for PostgreSQL Flexible Server as its managed relational database. Azure Container Registry will store the built image. Terraform will provision the cloud resources, and GitHub Actions will run the build, a simple test, image publishing, and deployment when changes reach `main`.
 
+The Terraform design puts the Container Apps environment and PostgreSQL Flexible Server in separate delegated subnets in one VNet. PostgreSQL has public network access disabled and resolves through a private DNS zone linked to the VNet. Container Apps exposes the API over HTTPS; its built-in consumption workload profile keeps the demonstration small. Log Analytics collects Container Apps logs.
+
 ## Rationale
 
 - **Azure Container Apps** provides managed container hosting with HTTP ingress and scaling, avoiding VM administration for this small demonstration.

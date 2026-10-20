@@ -13,6 +13,7 @@ A small three-tier application deployment demonstrating infrastructure as code, 
 - **Monitoring:** Azure Monitor and Log Analytics
 
 See [architecture notes](docs/architecture-notes.md) for rationale and trade-offs.
+Terraform files and deployment instructions are in [`infra/`](infra/README.md).
 
 ## Run locally
 
@@ -39,4 +40,4 @@ docker run --rm -p 3000:3000 azure-devops-assessment-api
 
 ## Status
 
-Milestone 2: sample API, basic test, and container definition are in place. Cloud infrastructure and CI/CD will be added in later milestones.
+Milestones 1-2: repository setup, sample API, basic test, and container definition are in place. Terraform infrastructure is prepared in `infra/`; review and deployment are the next steps. CI/CD and monitoring alerts will follow.
