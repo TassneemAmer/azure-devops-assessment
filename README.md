@@ -88,7 +88,7 @@ Container Apps sends ingress logs to the Log Analytics workspace. The enabled Az
 
 ## Evidence
 
-The screenshots below show the successful CI/CD run and the configured Azure Monitor alert and email action group. The original PNG files are in [`docs/evidence/`](docs/evidence/).
+The evidence below shows a successful CI/CD run, successful API and database readiness checks after the database bootstrap job, and the configured Azure Monitor alert and email action group. The original PNG files are in [`docs/evidence/`](docs/evidence/).
 
 <details>
 <summary>View assessment evidence screenshots</summary>
@@ -96,6 +96,12 @@ The screenshots below show the successful CI/CD run and the configured Azure Mon
 **GitHub Actions:** test and deploy jobs succeeded.
 
 ![Successful GitHub Actions test and deploy run](docs/evidence/github-actions-success.png)
+
+The [final workflow rerun](https://github.com/TassneemAmer/azure-devops-assessment/actions/runs/39634261781) also passed both jobs after the resource-group-scoped Container Apps Contributor role was removed, verifying deployment with the narrower permissions.
+
+**Application and database readiness:** after the PostgreSQL role bootstrap job succeeded, `/health` and `/ready` both returned HTTP 200; `/ready` reported `"database":"ok"`.
+
+![Azure Container App health and database readiness checks](docs/evidence/azure-app-health-check.png)
 
 **Azure Monitor:** alert scope, query condition, and attached action group.
 
@@ -109,7 +115,7 @@ The screenshots below show the successful CI/CD run and the configured Azure Mon
 
 ## Status and assessment notes
 
-The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform provisions the Azure resources. GitHub Actions has successfully completed both the test and deploy jobs; deployment uses OIDC federation, builds and pushes a commit-tagged image to ACR, and updates the Container App. See the [GitHub Actions run history](https://github.com/TassneemAmer/azure-devops-assessment/actions/workflows/ci-cd.yml). The monitoring alert is enabled and its email action group is attached.
+The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform provisions the Azure resources. GitHub Actions uses OIDC federation, builds and pushes a commit-tagged image to ACR, and updates the Container App. The [final workflow rerun](https://github.com/TassneemAmer/azure-devops-assessment/actions/runs/39634261781) passed both test and deploy after the broader resource-group role was removed. The monitoring alert is enabled and its email action group is attached.
 
 This assessment uses the Azure for Students subscription. The PostgreSQL server is private to the virtual network, the Container App uses HTTPS ingress, and the app uses a managed identity to pull images from ACR. Terraform state and local `.tfvars` files can contain sensitive values and must stay out of source control.
 
