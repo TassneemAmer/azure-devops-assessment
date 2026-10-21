@@ -1,8 +1,8 @@
 # Azure DevOps Assessment
 
-A small three-tier application deployment demonstrating infrastructure as code, containerization, CI/CD, and basic monitoring on Azure.
+A small API deployment demonstrating infrastructure as code, containerization, CI/CD, and basic monitoring on Azure.
 
-## Planned architecture
+## Architecture
 
 - **API:** A small containerized API with a health endpoint
 - **Compute:** Azure Container Apps
@@ -10,7 +10,25 @@ A small three-tier application deployment demonstrating infrastructure as code, 
 - **Container registry:** Azure Container Registry
 - **Infrastructure:** Terraform
 - **CI/CD:** GitHub Actions, with build, test, image build, and deployment on pushes to `main`
-- **Monitoring:** Azure Monitor and Log Analytics
+- **Monitoring:** Azure Monitor alerts and Log Analytics
+
+```mermaid
+flowchart LR
+    User[User] -->|HTTPS| App["Azure Container Apps<br/>Node.js API"]
+    App -->|Private network| DB[(Azure Database for PostgreSQL)]
+    App -->|Container logs| Logs[Log Analytics workspace]
+    Logs --> Monitor["Azure Monitor<br/>HTTP 5xx log alert"]
+    Monitor --> Email["Action group<br/>Email notification"]
+
+    GitHub["GitHub Actions<br/>Build and test"] -->|OIDC federation| Entra[Microsoft Entra ID]
+    GitHub -->|Build and push image| ACR[Azure Container Registry]
+    GitHub -->|Deploy image| App
+    App -->|Managed identity pulls image| ACR
+    Terraform[Terraform] -. provisions .-> App
+    Terraform -. provisions .-> DB
+    Terraform -. provisions .-> ACR
+    Terraform -. provisions .-> Logs
+```
 
 See [architecture notes](docs/architecture-notes.md) for rationale and trade-offs.
 Terraform files and deployment instructions are in [`infra/`](infra/README.md).
@@ -52,7 +70,7 @@ docker run --rm -p 3000:3000 azure-devops-assessment-api
 
 The workflow in `.github/workflows/ci-cd.yml` installs dependencies and runs `npm test` on pull requests and pushes to `main`. On pushes to `main`, it also authenticates to Azure with OpenID Connect, builds and pushes an image tagged with the commit SHA to Azure Container Registry, and updates the Azure Container App.
 
-Configure these **repository variables** in GitHub under **Settings → Secrets and variables → Actions → Variables**:
+The deployed workflow uses these **repository variables** in GitHub under **Settings → Secrets and variables → Actions → Variables**:
 
 | Variable | Value |
 | --- | --- |
@@ -62,6 +80,16 @@ Configure these **repository variables** in GitHub under **Settings → Secrets 
 
 No Azure client secret is required. The Entra application must have a federated credential for this repository's `main` branch, **Container Apps Contributor** access on the resource group, and **AcrPush** access on the registry. The Container App's managed identity pulls the deployed image from the registry.
 
-## Status
+## Monitoring
 
-The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform provisions the Azure resources. The GitHub Actions workflow is configured to build, test, publish the image, and deploy on pushes to `main`; configure the repository variables above and push the workflow to enable it. Monitoring alerts remain to be configured.
+Container Apps sends ingress logs to the Log Analytics workspace. The enabled Azure Monitor log alert checks `ContainerAppHTTPLogs` for requests to `app-azassessment-dev` with a status code of 500 or higher. It evaluates every five minutes and sends an email through the `ag-azassessment-alerts` action group when matching rows are found. No matching 5xx requests were present during the last 24-hour query check.
+
+## Status and assessment notes
+
+The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform provisions the Azure resources. GitHub Actions has successfully completed both the test and deploy jobs; deployment uses OIDC federation, builds and pushes a commit-tagged image to ACR, and updates the Container App. See the [GitHub Actions run history](https://github.com/TassneemAmer/azure-devops-assessment/actions/workflows/ci-cd.yml). The monitoring alert is enabled and its email action group is attached.
+
+This assessment uses the Azure for Students subscription. The PostgreSQL server is private to the virtual network, the Container App uses HTTPS ingress, and the app uses a managed identity to pull images from ACR. Terraform state and local `.tfvars` files can contain sensitive values and must stay out of source control.
+
+## Production follow-up
+
+For production, scale the Container App based on measured traffic and database load, define capacity limits and budgets, and use autoscaling with load testing to control cost. Improve availability with multiple app replicas across availability zones where supported, a PostgreSQL high-availability configuration, tested backups and restore procedures, and a documented recovery target. Add dashboards, service-level objectives, and alerts for latency, availability, database health, and resource saturation. These changes require a cost and reliability review before implementation.
