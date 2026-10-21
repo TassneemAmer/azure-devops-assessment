@@ -1,4 +1,5 @@
-subscription_id = "00000000-0000-0000-0000-000000000000"
-location        = "westeurope"
-project_name    = "azassessment"
-environment     = "dev"
+subscription_id                             = "00000000-0000-0000-0000-000000000000"
+github_deployer_service_principal_object_id = "00000000-0000-0000-0000-000000000000" # Replace with the service principal object ID, not the app's client ID.
+location                                    = "westeurope"
+project_name                                = "azassessment"
+environment                                 = "dev"

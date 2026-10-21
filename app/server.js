@@ -42,25 +42,6 @@ async function readJsonBody(request) {
 }
 
 function createServer({ databasePool = createDatabasePool() } = {}) {
-  let itemsTableReady;
-
-  async function ensureItemsTable() {
-    if (!itemsTableReady) {
-      itemsTableReady = databasePool.query(`
-        CREATE TABLE IF NOT EXISTS assessment_items (
-          id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-          name VARCHAR(120) NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `).catch((error) => {
-        itemsTableReady = undefined;
-        throw error;
-      });
-    }
-
-    await itemsTableReady;
-  }
-
   const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && request.url === '/health') {
       sendJson(response, 200, { status: 'ok' });
@@ -89,8 +70,6 @@ function createServer({ databasePool = createDatabasePool() } = {}) {
       }
 
       try {
-        await ensureItemsTable();
-
         if (request.method === 'GET') {
           const result = await databasePool.query(
             'SELECT id::text AS id, name, created_at FROM assessment_items ORDER BY created_at DESC, id DESC',

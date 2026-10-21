@@ -3,6 +3,16 @@ variable "subscription_id" {
   type        = string
 }
 
+variable "github_deployer_service_principal_object_id" {
+  description = "Object ID (not application/client ID) of the GitHub Actions service principal."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.github_deployer_service_principal_object_id))
+    error_message = "github_deployer_service_principal_object_id must be a service principal object ID in GUID format."
+  }
+}
+
 variable "location" {
   description = "Azure region for the assessment resources."
   type        = string
@@ -45,6 +55,17 @@ variable "db_admin_password" {
   validation {
     condition     = length(var.db_admin_password) >= 16
     error_message = "db_admin_password must be at least 16 characters."
+  }
+}
+
+variable "db_app_password" {
+  description = "Password for the restricted PostgreSQL application role. Supply via TF_VAR_db_app_password; do not commit it."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.db_app_password) >= 24
+    error_message = "db_app_password must be at least 24 characters."
   }
 }
 

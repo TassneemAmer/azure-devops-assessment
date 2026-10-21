@@ -9,9 +9,6 @@ let nextItemId = 1;
 
 const databasePool = {
   async query(query, values = []) {
-    if (query.includes('CREATE TABLE IF NOT EXISTS assessment_items')) {
-      return { rows: [] };
-    }
     if (query === 'SELECT 1') {
       return { rows: [{ '?column?': 1 }] };
     }

@@ -15,7 +15,8 @@ A small API deployment demonstrating infrastructure as code, containerization, C
 ```mermaid
 flowchart LR
     User[User] -->|HTTPS| App["Azure Container Apps<br/>Node.js API"]
-    App -->|Private network| DB[(Azure Database for PostgreSQL)]
+    App -->|Private network<br/>assessmentapp role| DB[(Azure Database for PostgreSQL)]
+    Bootstrap[Manual ACA role bootstrap job] -->|Creates limited DB login<br/>using admin credential| DB
     App -->|Container logs| Logs[Log Analytics workspace]
     Logs --> Monitor["Azure Monitor<br/>HTTP 5xx log alert"]
     Monitor --> Email["Action group<br/>Email notification"]
@@ -25,6 +26,7 @@ flowchart LR
     GitHub -->|Deploy image| App
     App -->|Managed identity pulls image| ACR
     Terraform[Terraform] -. provisions .-> App
+    Terraform -. provisions .-> Bootstrap
     Terraform -. provisions .-> DB
     Terraform -. provisions .-> ACR
     Terraform -. provisions .-> Logs
@@ -51,7 +53,7 @@ The API listens on port `3000` by default. Set `PORT` to change it. Visit `/` fo
 
 When PostgreSQL connection settings are configured, `/ready` checks database connectivity with a simple query. It returns HTTP 503 if the database is not configured or cannot be reached.
 
-The database-backed items API is available at `GET /items` to list items and `POST /items` to create one. Send JSON such as `{"name":"assessment demo"}` to create an item. The API creates the `assessment_items` table on first use. The database password is supplied to Azure Container Apps as a secret through Terraform; do not commit `terraform.tfvars` or Terraform state files.
+The database-backed items API is available at `GET /items` to list items and `POST /items` to create one. Send JSON such as `{"name":"assessment demo"}` to create an item. For local PostgreSQL, create the table with `psql "$DATABASE_URL" -f app/schema.sql` before using `/items`. In Azure, the API uses the restricted `assessmentapp` database role and does not create or alter schema at runtime. Terraform configures the PostgreSQL administrator account, but the API container receives only the app-role credential; a manually triggered bootstrap job uses the administrator credential to create or update that role, prepare the table, and grant its required permissions. Terraform state and local `.tfvars` files can contain secrets; never commit or share them.
 
 Run the basic API tests with:
 
@@ -78,7 +80,7 @@ The deployed workflow uses these **repository variables** in GitHub under **Sett
 | `AZURE_TENANT_ID` | Directory (tenant) ID for the Azure subscription |
 | `AZURE_SUBSCRIPTION_ID` | Subscription ID containing the assessment resources |
 
-No Azure client secret is required. The Entra application must have a federated credential for this repository's `main` branch, **Container Apps Contributor** access on the resource group, and **AcrPush** access on the registry. The Container App's managed identity pulls the deployed image from the registry.
+No Azure client secret is required. The Entra application must have a federated credential for this repository's `main` branch, **Container Apps Contributor** access scoped to the Container App, **Reader** on its Container Apps environment, and **AcrPush** on the registry. Terraform manages these scoped role assignments. After applying them, remove any older resource-group-scoped `Container Apps Contributor` assignment, then rerun the GitHub Actions workflow to verify the narrower permissions. The Container App's managed identity pulls the deployed image from the registry.
 
 ## Monitoring
 
