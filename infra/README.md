@@ -36,7 +36,7 @@ export TF_VAR_db_app_password
 The app password must be at least 24 characters. Terraform supplies it to the API as its restricted `assessmentapp` login and to a manual Container Apps Job. Terraform configures the administrator password on PostgreSQL and injects it into the bootstrap job, but does not pass it to the API container. The job connects to PostgreSQL over the Container Apps environment's VNet path and creates or updates the app login. After the first `terraform apply`, start the bootstrap job once:
 
 ```bash
-az containerapp job start --name job-azassessment-dev-db-bootstrap --resource-group rg-azassessment-dev
+az containerapp job start --name job-azassessment-dev-db-init --resource-group rg-azassessment-dev
 ```
 
 The API revision may report `/ready` as unavailable until this job completes. Check that the job execution succeeds in Azure Portal under the job's **Executions** page before relying on the API's `/ready` or `/items` endpoints. Run the job again after changing the app password. The job creates the table with the admin login and grants the app role only `USAGE` on the schema, `SELECT` and `INSERT` on the table, and sequence access. The API does not receive schema-creation rights. The psql output is silenced so generated SQL containing the app password is not written to job logs.

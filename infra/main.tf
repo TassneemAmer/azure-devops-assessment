@@ -226,7 +226,7 @@ resource "azurerm_container_app" "api" {
 }
 
 resource "azurerm_container_app_job" "postgres_role_bootstrap" {
-  name                         = "job-${local.name_base}-db-bootstrap"
+  name                         = "job-${local.name_base}-db-init"
   location                     = azurerm_resource_group.main.location
   resource_group_name          = azurerm_resource_group.main.name
   container_app_environment_id = azurerm_container_app_environment.main.id
