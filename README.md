@@ -84,6 +84,27 @@ No Azure client secret is required. The Entra application must have a federated 
 
 Container Apps sends ingress logs to the Log Analytics workspace. The enabled Azure Monitor log alert checks `ContainerAppHTTPLogs` for requests to `app-azassessment-dev` with a status code of 500 or higher. It evaluates every five minutes and sends an email through the `ag-azassessment-alerts` action group when matching rows are found. No matching 5xx requests were present during the last 24-hour query check.
 
+## Evidence
+
+The screenshots below show the successful CI/CD run and the configured Azure Monitor alert and email action group. The original PNG files are in [`docs/evidence/`](docs/evidence/).
+
+<details>
+<summary>View assessment evidence screenshots</summary>
+
+**GitHub Actions:** test and deploy jobs succeeded.
+
+![Successful GitHub Actions test and deploy run](docs/evidence/github-actions-success.png)
+
+**Azure Monitor:** alert scope, query condition, and attached action group.
+
+![Azure Monitor alert rule overview](docs/evidence/azure-alert-overview.png)
+
+**Email notification:** the alert action group contains one email action.
+
+![Azure alert action group email configuration](docs/evidence/azure-alert-email-action.png)
+
+</details>
+
 ## Status and assessment notes
 
 The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform provisions the Azure resources. GitHub Actions has successfully completed both the test and deploy jobs; deployment uses OIDC federation, builds and pushes a commit-tagged image to ACR, and updates the Container App. See the [GitHub Actions run history](https://github.com/TassneemAmer/azure-devops-assessment/actions/workflows/ci-cd.yml). The monitoring alert is enabled and its email action group is attached.
