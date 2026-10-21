@@ -48,6 +48,20 @@ docker build -t azure-devops-assessment-api .
 docker run --rm -p 3000:3000 azure-devops-assessment-api
 ```
 
+## GitHub Actions deployment
+
+The workflow in `.github/workflows/ci-cd.yml` installs dependencies and runs `npm test` on pull requests and pushes to `main`. On pushes to `main`, it also authenticates to Azure with OpenID Connect, builds and pushes an image tagged with the commit SHA to Azure Container Registry, and updates the Azure Container App.
+
+Configure these **repository variables** in GitHub under **Settings → Secrets and variables → Actions → Variables**:
+
+| Variable | Value |
+| --- | --- |
+| `AZURE_CLIENT_ID` | Application (client) ID of `github-azure-devops-assessment` |
+| `AZURE_TENANT_ID` | Directory (tenant) ID for the Azure subscription |
+| `AZURE_SUBSCRIPTION_ID` | Subscription ID containing the assessment resources |
+
+No Azure client secret is required. The Entra application must have a federated credential for this repository's `main` branch, **Container Apps Contributor** access on the resource group, and **AcrPush** access on the registry. The Container App's managed identity pulls the deployed image from the registry.
+
 ## Status
 
-The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform configures the PostgreSQL connection for the Container App; CI/CD and monitoring alerts will follow.
+The API exposes `/health` for process health and `/ready` for PostgreSQL readiness. Terraform provisions the Azure resources. The GitHub Actions workflow is configured to build, test, publish the image, and deploy on pushes to `main`; configure the repository variables above and push the workflow to enable it. Monitoring alerts remain to be configured.
